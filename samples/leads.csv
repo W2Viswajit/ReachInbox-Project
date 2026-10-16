@@ -1,0 +1,7 @@
+name,email
+Sarah Wilson,sarah@example.test
+John Smith,john@example.test
+Olive Brown,olive@example.test
+Support,support@example.test
+Duplicate,sarah@example.test
+Invalid,not-an-email
