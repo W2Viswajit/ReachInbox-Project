@@ -17,6 +17,7 @@ import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressAdapter } from "@bull-board/express";
 import { config, adminEmails } from "./config.js";
+import { evaluateSlackSetup } from "./slack-config.js";
 import { db, transaction } from "./db.js";
 import { emailQueue, redis } from "./queue.js";
 import { encrypt, decrypt, hash, token } from "./security.js";
@@ -89,11 +90,8 @@ async function login(req: Request, id: string) {
 app.get("/api/config", (_req, res) =>
   res.json({
     googleReady: !!(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET),
-    slackReady: !!(
-      config.SLACK_CLIENT_ID &&
-      config.SLACK_CLIENT_SECRET &&
-      config.SLACK_CALLBACK_URL.startsWith("https://")
-    ),
+    slackReady: evaluateSlackSetup(config).ready,
+    slackIssues: evaluateSlackSetup(config).issues,
     localLogin:
       config.NODE_ENV === "development" && config.ALLOW_LOCAL_LOGIN === "true",
     minDelayMs: config.MIN_DELAY_MS,
@@ -165,7 +163,7 @@ app.get("/auth/google/callback", async (req, res) => {
   }
 });
 app.get("/auth/slack", auth, async (req, res) => {
-  if (!config.SLACK_CLIENT_ID)
+  if (!evaluateSlackSetup(config).ready)
     return res.redirect(`${config.APP_URL}/?error=slack_not_configured`);
   req.session.slackState = { value: token(), at: Date.now() };
   const params = new URLSearchParams({
@@ -548,6 +546,12 @@ createBullBoard({
     uiConfig: {
       boardTitle: "Bull Dashboard",
       boardLogo: { path: "" },
+      favIcon: {
+        default:
+          'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22/%3E',
+        alternative:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j7uoAAAAASUVORK5CYII=",
+      },
     },
   },
 });

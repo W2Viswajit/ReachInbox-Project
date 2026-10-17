@@ -35,6 +35,7 @@ export type User = {
 export type Config = {
   googleReady: boolean;
   slackReady: boolean;
+  slackIssues?: string[];
   localLogin: boolean;
   minDelayMs: number;
   maxHourlyLimit: number;

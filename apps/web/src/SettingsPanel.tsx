@@ -51,6 +51,8 @@ export default function SettingsPanel({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [health, setHealth] = useState<Record<string, boolean> | null>(null);
+  const [connectingSlack, setConnectingSlack] = useState(false);
+  const [slackIssues, setSlackIssues] = useState<string[]>([]);
   useEffect(() => {
     void api<Record<string, boolean>>("/health")
       .then(setHealth)
@@ -72,6 +74,29 @@ export default function SettingsPanel({
       setError((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  }
+  async function connectSlack() {
+    setConnectingSlack(true);
+    setSlackIssues([]);
+    try {
+      // Recheck the server so configuration fixed after page load is recognized.
+      const latest = await api<Config>("/config");
+      if (!latest.slackReady) {
+        setSlackIssues(
+          latest.slackIssues?.length
+            ? latest.slackIssues
+            : [
+                "Set SLACK_CLIENT_ID, SLACK_CLIENT_SECRET and an HTTPS SLACK_CALLBACK_URL in your local .env file.",
+              ],
+        );
+        return;
+      }
+      window.location.assign("/auth/slack");
+    } catch (error) {
+      setSlackIssues([(error as Error).message]);
+    } finally {
+      setConnectingSlack(false);
     }
   }
   return (
@@ -153,7 +178,7 @@ export default function SettingsPanel({
             </button>
           </div>
         </section>
-        <section>
+        <section className="slack-section">
           <div className="integration-title">
             <div className="slack-mark">#</div>
             <div>
@@ -163,51 +188,74 @@ export default function SettingsPanel({
               </p>
             </div>
           </div>
-          {slack.connected ? (
-            <>
-              <div className="connected">
-                <Check size={16} />
-                Connected to {slack.team_name} · {slack.channel_name}
-              </div>
+          <div className="slack-actions">
+            {slack.connected ? (
+              <>
+                <div className="connected">
+                  <Check size={16} />
+                  Connected to {slack.team_name} · {slack.channel_name}
+                </div>
+                <button
+                  className="outline"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      await api("/slack", { method: "DELETE" });
+                      await refresh();
+                      notify("Slack disconnected.");
+                    } catch (e) {
+                      setError((e as Error).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Disconnect Slack
+                </button>
+              </>
+            ) : (
               <button
-                className="outline"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    await api("/slack", { method: "DELETE" });
-                    await refresh();
-                    notify("Slack disconnected.");
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
+                type="button"
+                className="outline slack-connect-button"
+                disabled={connectingSlack}
+                onClick={() => void connectSlack()}
+                aria-describedby="slack-help"
               >
-                Disconnect Slack
+                {connectingSlack ? <Spinner /> : null}
+                {connectingSlack ? "Checking setup…" : "Connect Slack"}
+                {!connectingSlack && <ExternalLink size={14} />}
               </button>
-            </>
-          ) : (
-            <a
-              className={`outline ${!config.slackReady ? "disabled" : ""}`}
-              href={config.slackReady ? "/auth/slack" : undefined}
-            >
-              Connect Slack
-              <ExternalLink size={14} />
-            </a>
-          )}
-          {!config.slackReady && (
-            <p className="helper">
-              Add your Slack app credentials in .env to enable OAuth.
-            </p>
-          )}
-          {slack.alerts.length > 0 && (
-            <p className="helper">
-              Alerts:{" "}
-              {slack.alerts.map((x) => `${x.count} ${x.status}`).join(" · ")}
-            </p>
-          )}
+            )}
+            {!slack.connected && (
+              <p className="helper" id="slack-help">
+                {config.slackReady
+                  ? "Choose a workspace and channel to receive alerts."
+                  : "Slack needs setup. Click Connect Slack to check what is missing."}
+              </p>
+            )}
+            {slackIssues.length > 0 && (
+              <div className="slack-setup-note" role="alert">
+                <strong>Finish Slack setup</strong>
+                <ul>
+                  {slackIssues.map((issue) => (
+                    <li key={issue}>{issue}</li>
+                  ))}
+                </ul>
+                <p>
+                  Save .env, restart the API, then click Connect Slack again.
+                  Register the same HTTPS callback in your Slack app’s OAuth
+                  &amp; Permissions settings.
+                </p>
+              </div>
+            )}
+            {slack.alerts.length > 0 && (
+              <p className="helper">
+                Alerts:{" "}
+                {slack.alerts.map((x) => `${x.count} ${x.status}`).join(" · ")}
+              </p>
+            )}
+          </div>
         </section>
         <section>
           <h3>Service status</h3>
