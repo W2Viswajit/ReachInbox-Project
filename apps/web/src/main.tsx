@@ -192,11 +192,7 @@ function App() {
     return (
       <main className="login">
         <div className="login-card">
-          <div className="brand-mini">
-            ONB<span>REACHINBOX</span>
-          </div>
           <h1>Login</h1>
-          <p className="muted">Your emails. Right on time.</p>
           {error && (
             <div role="alert" className="error">
               {error}
@@ -205,40 +201,58 @@ function App() {
           <a
             className={`google-button ${!config?.googleReady ? "disabled" : ""}`}
             href={config?.googleReady ? "/auth/google" : undefined}
+            aria-disabled={!config?.googleReady}
+            title={
+              !config?.googleReady
+                ? "Configure Google OAuth in .env to enable sign-in"
+                : undefined
+            }
           >
-            <span className="google-g">G</span>Login with Google
+            <svg className="google-g" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="#4285F4"
+                d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.3 2.98-7.36Z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.23-2.51c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.12H3.05v2.59A10 10 0 0 0 12 22Z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M6.39 13.92A6 6 0 0 1 6.07 12c0-.67.12-1.32.32-1.92V7.49H3.05A10 10 0 0 0 2 12c0 1.61.38 3.14 1.05 4.51l3.34-2.59Z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.96c1.47 0 2.79.51 3.82 1.51l2.86-2.86A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.95 5.49l3.34 2.59C7.18 7.72 9.39 5.96 12 5.96Z"
+              />
+            </svg>
+            Login with Google
           </a>
           <div className="login-divider">
-            <span>Secure sign-in</span>
+            <span>or sign up through email</span>
           </div>
-          <p className="login-note">
-            Schedule emails, track delivery and keep every sender in sync.
-          </p>
-          {!config?.googleReady && (
-            <div className="setup-note">
-              Google login needs configuration. Follow{" "}
-              <strong>docs/SETUP.md</strong> to add your OAuth credentials.
-            </div>
-          )}
-          {config?.localLogin && (
-            <button
-              className="outline full"
-              onClick={async () => {
-                try {
-                  await api("/local-login", { method: "POST" });
-                  location.reload();
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              Developer login — local testing only
+          <fieldset
+            className="email-login"
+            disabled
+            aria-label="Email sign-in unavailable. Please use Login with Google."
+            title="Email/password sign-in is not enabled. Please use Login with Google."
+          >
+            <input
+              type="email"
+              placeholder="Email ID"
+              aria-label="Email ID"
+              autoComplete="email"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              aria-label="Password"
+              autoComplete="current-password"
+            />
+            <button className="email-login-button" type="button" disabled>
+              Login
             </button>
-          )}
-          <div className="test-note">
-            <span className="dot" />
-            Ethereal test environment · No real recipient delivery
-          </div>
+          </fieldset>
         </div>
       </main>
     );

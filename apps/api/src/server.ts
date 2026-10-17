@@ -544,6 +544,12 @@ boardAdapter.setBasePath("/admin/queues");
 createBullBoard({
   queues: [new BullMQAdapter(emailQueue, { readOnlyMode: true })],
   serverAdapter: boardAdapter,
+  options: {
+    uiConfig: {
+      boardTitle: "Bull Dashboard",
+      boardLogo: { path: "" },
+    },
+  },
 });
 app.use(
   "/admin/queues",
